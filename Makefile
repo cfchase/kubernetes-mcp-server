@@ -154,3 +154,23 @@ undeploy: ## Remove deployment from OpenShift/Kubernetes cluster
 .PHONY: test-deployment
 test-deployment: ## Test the deployed MCP server
 	DEPLOY_NAMESPACE=$(DEPLOY_NAMESPACE) ./scripts/test.sh
+
+##@ OAuth Deployment
+
+.PHONY: deploy-oauth
+deploy-oauth: ## Deploy to OpenShift with OAuth authentication
+	DEPLOY_NAMESPACE=$(DEPLOY_NAMESPACE) ./scripts/deploy-oauth.sh
+
+.PHONY: undeploy-oauth
+undeploy-oauth: ## Remove OAuth deployment from OpenShift
+	DEPLOY_NAMESPACE=$(DEPLOY_NAMESPACE) ./scripts/cleanup.sh
+
+.PHONY: test-oauth
+test-oauth: ## Test the OAuth-protected MCP server
+	DEPLOY_NAMESPACE=$(DEPLOY_NAMESPACE) ./scripts/test-oauth.sh
+
+.PHONY: switch-to-oauth
+switch-to-oauth: undeploy deploy-oauth ## Switch from non-OAuth to OAuth deployment
+
+.PHONY: switch-to-noauth
+switch-to-noauth: undeploy-oauth deploy ## Switch from OAuth to non-OAuth deployment
