@@ -1,6 +1,9 @@
 # If you update this file, please follow
 # https://suva.sh/posts/well-documented-makefiles
 
+# Include .env file if it exists for local overrides
+-include .env
+
 .DEFAULT_GOAL := help
 
 PACKAGE = $(shell go list -m)
@@ -111,3 +114,40 @@ golangci-lint: ## Download and install golangci-lint if not already installed
 .PHONY: lint
 lint: golangci-lint ## Lint the code
 	$(GOLANGCI_LINT) run --verbose --print-resources-usage
+
+##@ Container
+
+# Container build configuration
+CONTAINER_RUNTIME ?= podman
+CONTAINER_REGISTRY ?= quay.io
+CONTAINER_NAMESPACE ?= cfchase
+CONTAINER_IMAGE_NAME ?= kubernetes-mcp-server
+CONTAINER_TAG ?= latest
+CONTAINER_IMAGE ?= $(CONTAINER_REGISTRY)/$(CONTAINER_NAMESPACE)/$(CONTAINER_IMAGE_NAME):$(CONTAINER_TAG)
+
+.PHONY: container-build
+container-build: ## Build container image
+	@echo "Building container image with $(CONTAINER_RUNTIME): $(CONTAINER_IMAGE)"
+	$(CONTAINER_RUNTIME) build --platform linux/amd64 -t $(CONTAINER_IMAGE) .
+
+.PHONY: container-push
+container-push: ## Push container image to registry
+	@echo "Pushing container image with $(CONTAINER_RUNTIME): $(CONTAINER_IMAGE)"
+	$(CONTAINER_RUNTIME) push $(CONTAINER_IMAGE)
+
+.PHONY: container-build-push
+container-build-push: container-build container-push ## Build and push container image
+
+##@ Deployment
+
+.PHONY: deploy
+deploy: ## Deploy to OpenShift/Kubernetes cluster
+	./scripts/deploy.sh
+
+.PHONY: undeploy
+undeploy: ## Remove deployment from OpenShift/Kubernetes cluster
+	./scripts/cleanup.sh
+
+.PHONY: test-deployment
+test-deployment: ## Test the deployed MCP server
+	./scripts/test.sh
